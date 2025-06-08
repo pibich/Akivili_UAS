@@ -17,3 +17,7 @@ INSTALL THIS BOYS:
 'npm install lucide-react-native'
 
 'npm install react-native-safe-area-context'
+
+'npx expo install expo-image-picker expo-file-system'
+
+'npm install base64-arraybuffer'
