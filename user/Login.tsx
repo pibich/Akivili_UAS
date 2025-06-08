@@ -1,3 +1,4 @@
+//Login.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -27,7 +28,6 @@ export default function Login({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   const [secureEntry, setSecureEntry] = useState(true);
 
-  // Show success message if coming from registration
   React.useEffect(() => {
     if (route.params?.successMessage) {
       Alert.alert('Sukses', route.params.successMessage);
@@ -47,7 +47,6 @@ export default function Login({ navigation, route }) {
     try {
       let emailToLogin = credential;
 
-      // If input doesn't look like an email, treat it as a username
       if (!credential.includes('@')) {
         const { data, error: usernameError } = await supabase
           .from('profiles')
