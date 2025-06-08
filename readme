@@ -1,0 +1,17 @@
+INSTALL THIS BOYS:
+
+'npx expo install @supabase/supabase-js @react-native-async-storage/async-storage react-native-url-polyfill'
+
+'npx expo install react-dom react-native-web @expo/metro-runtime'
+
+'npm install --save-dev @types/react @types/react-native'
+
+'npm install expo-auth-session react-native'
+
+'npx expo install @react-navigation/native @react-navigation/native-stack'
+
+'npm install axios'
+
+'npx expo install @react-navigation/bottom-tabs'
+
+'npm install lucide-react-native'
