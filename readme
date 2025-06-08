@@ -15,3 +15,5 @@ INSTALL THIS BOYS:
 'npx expo install @react-navigation/bottom-tabs'
 
 'npm install lucide-react-native'
+
+'npm install react-native-safe-area-context'

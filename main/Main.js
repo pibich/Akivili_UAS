@@ -34,10 +34,10 @@ export default function MainTabs() {
         tabBarLabelStyle: { fontSize: 12 },
       })}
     >
-      <Tab.Screen name="Home"    component={HomeScreen}  options={{ tabBarLabel: 'Home' }} />
-      <Tab.Screen name="Cart"    component={CartScreen}  options={{ tabBarLabel: 'Cart' }} />
-      <Tab.Screen name="News"    component={NewsLetter} options={{ tabBarLabel: 'News' }} />
-      <Tab.Screen name="Profile" component={Profile}     options={{ tabBarLabel: 'Profile' }} />
+      <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: 'Home' }} />
+      <Tab.Screen name="Cart" component={CartScreen} options={{ tabBarLabel: 'Cart' }} />
+      <Tab.Screen name="News" component={NewsLetter} options={{ tabBarLabel: 'News' }} />
+      <Tab.Screen name="Profile" component={Profile} options={{ tabBarLabel: 'Profile' }} />
     </Tab.Navigator>
   );
 }

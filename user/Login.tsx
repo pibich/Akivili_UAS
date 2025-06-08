@@ -1,134 +1,298 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, StatusBar, ActivityIndicator,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  StatusBar,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert,
 } from 'react-native';
 import { Headphones } from 'lucide-react-native';
-import { supabase } from './Supabase'; // Adjust the import path as needed
+import { supabase } from './Supabase';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const PRIMARY = '#FFA800';
+const BORDER = '#FFCD5C';
 
-export default function Login({ navigation }) {
-  // Use credential (can be email or username)
+export default function Login({ navigation, route }) {
+  const insets = useSafeAreaInsets();
   const [credential, setCredential] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [secureEntry, setSecureEntry] = useState(true);
+
+  // Show success message if coming from registration
+  React.useEffect(() => {
+    if (route.params?.successMessage) {
+      Alert.alert('Sukses', route.params.successMessage);
+      navigation.setParams({ successMessage: undefined });
+    }
+  }, [route.params]);
 
   const onLogin = async () => {
+    if (!credential || !password) {
+      setError('Email/username dan password harus diisi');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
-    let emailToLogin = credential;
+    try {
+      let emailToLogin = credential;
 
-    // If input doesn't look like an email, treat it as a username
-    if (!credential.includes('@')) {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('display_name', credential) // change 'display_name' if your username field is named differently
-        .maybeSingle();
+      // If input doesn't look like an email, treat it as a username
+      if (!credential.includes('@')) {
+        const { data, error: usernameError } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('display_name', credential)
+          .maybeSingle();
 
-      if (error || !data) {
-        setError('Username/email tidak ditemukan');
-        setLoading(false);
-        return;
+        if (usernameError || !data) {
+          throw new Error('Username/email tidak ditemukan');
+        }
+        emailToLogin = data.email;
       }
-      emailToLogin = data.email;
+
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: emailToLogin,
+        password,
+      });
+
+      if (loginError) throw loginError;
+      
+      navigation.replace('App');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-
-    const { error: loginError } = await supabase.auth.signInWithPassword({
-      email: emailToLogin,
-      password,
-    });
-
-    setLoading(false);
-    if (loginError) setError(loginError.message);
-    else navigation.replace('App');
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar backgroundColor={PRIMARY} barStyle="light-content" />
-      <View style={styles.header}>
-        <Text style={styles.logo}>Akivili.</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('CustomerService')}>
-          <Headphones size={24} color="#FFF" />
-        </TouchableOpacity>
-      </View>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContainer,
+          { paddingBottom: insets.bottom + 20 }
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Header */}
+        <View style={[styles.header, { paddingTop: insets.top }]}>
+          <Text style={styles.logo}>Akivili.</Text>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('CustomerService')}
+            style={styles.customerServiceBtn}
+          >
+            <Headphones size={24} color="#FFF" />
+          </TouchableOpacity>
+        </View>
 
-      <Text style={styles.title}>Login Member</Text>
-      <Text style={styles.subtitle}>Masuk menggunakan email atau username yang sudah terdaftar.</Text>
+        {/* Login Form */}
+        <View style={styles.formContainer}>
+          <Text style={styles.title}>Login Member</Text>
+          <Text style={styles.subtitle}>
+            Masuk menggunakan email yang sudah terdaftar
+          </Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="EMAIL atau USERNAME"
-        placeholderTextColor="#999"
-        autoCapitalize="none"
-        value={credential}
-        onChangeText={setCredential}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="PASSWORD"
-        placeholderTextColor="#999"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+          {error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
 
-      {error ? <Text style={{ color: 'red', textAlign: 'center', marginBottom: 12 }}>{error}</Text> : null}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="#999"
+              autoCapitalize="none"
+              value={credential}
+              onChangeText={(text) => {
+                setCredential(text);
+                setError('');
+              }}
+            />
+          </View>
 
-      <TouchableOpacity onPress={() => navigation.navigate('ForgotPass')}>
-        <Text style={styles.forgot}>Lupa Password?</Text>
-      </TouchableOpacity>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#999"
+              secureTextEntry={secureEntry}
+              value={password}
+              onChangeText={(text) => {
+                setPassword(text);
+                setError('');
+              }}
+            />
+            <TouchableOpacity
+              style={styles.eyeIcon}
+              onPress={() => setSecureEntry(!secureEntry)}
+            >
+              <Text style={styles.eyeIconText}>
+                {secureEntry ? 'Tampilkan' : 'Sembunyikan'}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-      <TouchableOpacity style={styles.button} onPress={onLogin} disabled={loading}>
-        {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonTxt}>LOGIN</Text>}
-      </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.forgotButton}
+            onPress={() => navigation.navigate('ForgotPass')}
+          >
+            <Text style={styles.forgotText}>Lupa Password?</Text>
+          </TouchableOpacity>
 
-      <View style={styles.switchRow}>
-        <Text>Belum punya akun? </Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-          <Text style={styles.link}>Daftar di sini</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={onLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.buttonText}>LOGIN</Text>
+            )}
+          </TouchableOpacity>
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Belum punya akun? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <Text style={styles.footerLink}>Daftar di sini</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF', padding: 20 },
+  container: {
+    flex: 1,
+    backgroundColor: '#FFF',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+  },
   header: {
     height: 60,
     backgroundColor: PRIMARY,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
   },
-  logo:     { fontSize: 24, fontWeight: 'bold', color: '#FFF', flex: 1 },
-  title:    { fontSize: 24, fontWeight: '700', marginTop: 24, textAlign: 'center' },
-  subtitle: { fontSize: 14, color: '#555', textAlign: 'center', marginBottom: 24 },
-
+  logo: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+  customerServiceBtn: {
+    padding: 8,
+  },
+  formContainer: {
+    padding: 20,
+    marginTop: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
+    color: '#000',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#555',
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  errorContainer: {
+    backgroundColor: '#FFEBEE',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  errorText: {
+    color: '#D32F2F',
+    textAlign: 'center',
+  },
+  inputContainer: {
+    marginBottom: 16,
+    position: 'relative',
+  },
   input: {
     height: 50,
-    backgroundColor: '#EEE',
+    backgroundColor: '#FAFAFA',
+    borderWidth: 1,
+    borderColor: BORDER,
     borderRadius: 12,
     paddingHorizontal: 16,
     fontSize: 14,
-    marginBottom: 16
+    color: '#000',
   },
-  forgot:   { textAlign: 'right', color: PRIMARY, marginBottom: 24 },
-
-  button:   {
+  eyeIcon: {
+    position: 'absolute',
+    right: 16,
+    top: 13,
+  },
+  eyeIconText: {
+    color: PRIMARY,
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  forgotButton: {
+    alignSelf: 'flex-end',
+    marginBottom: 24,
+  },
+  forgotText: {
+    color: PRIMARY,
+    fontWeight: '600',
+  },
+  button: {
     backgroundColor: PRIMARY,
     height: 50,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24
+    marginBottom: 24,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  buttonTxt:{ color: '#000', fontWeight: '700', fontSize: 16 },
-
-  switchRow:{ flexDirection: 'row', justifyContent: 'center' },
-  link:     { color: 'red', fontWeight: '600' },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  buttonText: {
+    color: '#000',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  footerText: {
+    color: '#555',
+  },
+  footerLink: {
+    color: PRIMARY,
+    fontWeight: '600',
+  },
 });

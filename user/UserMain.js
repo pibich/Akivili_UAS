@@ -15,9 +15,9 @@ export default function UserMain() {
       initialRouteName="Splash"
       screenOptions={{ headerShown: false, animation: 'fade' }}
     >
-      <Stack.Screen name="Splash"          component={Splash} />
-      <Stack.Screen name="Login"           component={Login} />
-      <Stack.Screen name="Register"          component={Register} />
+      <Stack.Screen name="Splash" component={Splash} />
+      <Stack.Screen name="Login" component={Login} />
+      <Stack.Screen name="Register" component={Register} />
       <Stack.Screen name="CustomerService" component={CustomerService} />
     </Stack.Navigator>
   );

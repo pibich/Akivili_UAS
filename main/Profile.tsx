@@ -1,7 +1,5 @@
-// src/main/Profile.tsx
 import React, { useEffect, useState } from 'react';
 import {
-  SafeAreaView,
   View,
   Text,
   Image,
@@ -10,18 +8,28 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  ScrollView,
 } from 'react-native';
-import { supabase } from '../user/Supabase'; // Adjust the import path as needed
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { supabase } from '../user/Supabase';
+import { Headphones } from 'lucide-react-native';
 
 const PRIMARY = '#FFA800';
 const BORDER = '#FFCD5C';
 
 export default function Profile({ navigation }) {
+  const insets = useSafeAreaInsets();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('********');
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [isEditingPassword, setIsEditingPassword] = useState(false);
+  const [secureEntry, setSecureEntry] = useState(true);
 
-  // 1. Fetch user from Supabase session
+  // Fetch user from Supabase session
   useEffect(() => {
     const getUser = async () => {
       const { data: { session }, error } = await supabase.auth.getSession();
@@ -31,12 +39,13 @@ export default function Profile({ navigation }) {
         return;
       }
       setUser(session?.user ?? null);
+      setEmail(session?.user?.email ?? '');
       setLoading(false);
     };
     getUser();
   }, []);
 
-  // 2. Fetch username/profile from "profiles" table (if available)
+  // Fetch profile data
   useEffect(() => {
     if (user?.id) {
       supabase
@@ -55,100 +64,334 @@ export default function Profile({ navigation }) {
     navigation.getParent()?.replace('Auth');
   };
 
+  const handleUpdateEmail = async () => {
+    if (!email) {
+      Alert.alert('Error', 'Email tidak boleh kosong');
+      return;
+    }
+
+    if (email === user?.email) {
+      setIsEditingEmail(false);
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.updateUser({ email });
+      if (error) throw error;
+      
+      Alert.alert(
+        'Berhasil', 
+        'Email berhasil diubah! Silakan verifikasi email baru Anda.',
+        [
+          { 
+            text: 'OK', 
+            onPress: () => {
+              setIsEditingEmail(false);
+              setUser(prev => ({ ...prev, email }));
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      Alert.alert('Error', error.message);
+      setEmail(user?.email || '');
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!password || password === '********') {
+      Alert.alert('Error', 'Password tidak boleh kosong');
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      
+      Alert.alert('Berhasil', 'Password berhasil diubah!');
+      setPassword('********');
+      setIsEditingPassword(false);
+    } catch (error) {
+      Alert.alert('Error', error.message);
+      setPassword('********');
+    }
+  };
+
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <View style={[styles.container, { paddingBottom: insets.bottom }]}>
         <ActivityIndicator size="large" color={PRIMARY} />
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.logo}>Akivili.</Text>
-        <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
-          <Text style={styles.logoutTxt}>Logout →</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Avatar & Greeting */}
-      <View style={styles.profile}>
-        <View style={styles.avatarWrapper}>
-          <View style={styles.avatarCircle}>
-            <Image
-              source={require('../assets/user-icon.png')}
-              style={styles.avatarIcon}
-            />
+    <KeyboardAvoidingView
+      behavior="padding"
+      style={styles.container}
+    >
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContainer,
+          { paddingBottom: insets.bottom + 20 }
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Header */}
+        <View style={[styles.header, { paddingTop: insets.top }]}>
+          <Text style={styles.logo}>Akivili.</Text>
+          <View style={styles.headerRight}>
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('CustomerService')}
+              style={styles.customerServiceBtn}
+            >
+              <Headphones size={24} color="#FFF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
+              <Text style={styles.logoutTxt}>Logout</Text>
+            </TouchableOpacity>
           </View>
         </View>
-        <Text style={styles.greeting}>
-          Hello, <Text style={styles.username}>{profile?.display_name || user?.email?.split('@')[0] || 'User'}!</Text>
-        </Text>
-        <Text style={styles.subtitle}>
-          Ingat, lebih baik mengelola keuangan dengan bijak daripada menyesal di kemudian hari.
-        </Text>
-      </View>
 
-      {/* Form Email & Username */}
-      <View style={styles.form}>
-        <Text style={styles.label}>Email</Text>
-        <View style={styles.inputRow}>
-          <TextInput style={styles.input} value={user?.email || ''} editable={false} />
-        </View>
+        {/* Profile Content */}
+        <View style={styles.content}>
+          {/* Avatar Section */}
+          <View style={styles.avatarSection}>
+            <View style={styles.avatarWrapper}>
+              <Image
+                source={require('../assets/user-icon.png')}
+                style={styles.avatar}
+              />
+            </View>
+            <Text style={styles.greeting}>
+              Halo, <Text style={styles.username}>{profile?.display_name || user?.email?.split('@')[0] || 'User'}!</Text>
+            </Text>
+            <Text style={styles.subtitle}>
+              Ingat, lebih baik mengelola keuangan dengan bijak daripada menyesal di kemudian hari.
+            </Text>
+          </View>
 
-        <Text style={[styles.label, { marginTop: 20 }]}>Username</Text>
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.input}
-            value={profile?.display_name || user?.email?.split('@')[0] || ''}
-            editable={false}
-          />
+          {/* Form Section */}
+          <View style={styles.formSection}>
+            <Text style={styles.sectionTitle}>Informasi Akun</Text>
+
+            {/* Email Field */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor="#999"
+                value={email}
+                onChangeText={setEmail}
+                editable={isEditingEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+              <TouchableOpacity
+                style={styles.changeButton}
+                onPress={isEditingEmail ? handleUpdateEmail : () => setIsEditingEmail(true)}
+              >
+                <Text style={styles.changeButtonText}>
+                  {isEditingEmail ? 'Simpan' : 'Ubah'}
+                </Text>
+              </TouchableOpacity>
+              {isEditingEmail && (
+                <TouchableOpacity
+                  style={[styles.changeButton, styles.cancelButton]}
+                  onPress={() => {
+                    setIsEditingEmail(false);
+                    setEmail(user?.email || '');
+                  }}
+                >
+                  <Text style={styles.changeButtonText}>Batal</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Password Field */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Password</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                placeholderTextColor="#999"
+                value={password}
+                onChangeText={setPassword}
+                editable={isEditingPassword}
+                secureTextEntry={!isEditingPassword ? secureEntry : false}
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setSecureEntry(!secureEntry)}
+              >
+                <Text style={styles.eyeIconText}>
+                  {secureEntry ? 'Tampilkan' : 'Sembunyikan'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.changeButton}
+                onPress={isEditingPassword ? handleUpdatePassword : () => setIsEditingPassword(true)}
+              >
+                <Text style={styles.changeButtonText}>
+                  {isEditingPassword ? 'Simpan' : 'Ubah'}
+                </Text>
+              </TouchableOpacity>
+              {isEditingPassword && (
+                <TouchableOpacity
+                  style={[styles.changeButton, styles.cancelButton]}
+                  onPress={() => {
+                    setIsEditingPassword(false);
+                    setPassword('********');
+                    setSecureEntry(true);
+                  }}
+                >
+                  <Text style={styles.changeButtonText}>Batal</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
         </View>
-      </View>
-    </SafeAreaView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF' },
+  container: {
+    flex: 1,
+    backgroundColor: '#FFF',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+  },
   header: {
+    height: 60,
     backgroundColor: PRIMARY,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 20,
   },
-  logo:      { fontSize: 24, fontWeight: 'bold', color: '#000' },
-  logoutBtn: { backgroundColor: '#FFF', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20 },
-  logoutTxt: { color: PRIMARY, fontWeight: '600' },
-
-  profile:        { alignItems: 'center', marginTop: 24, paddingHorizontal: 20 },
-  avatarWrapper:  { marginBottom: 16 },
-  avatarCircle:   {
-    width: 100, height: 100, borderRadius: 50,
-    borderWidth: 4, borderColor: '#000',
-    alignItems: 'center', justifyContent: 'center'
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  avatarIcon: { width: 50, height: 50, tintColor: '#000' },
-
-  greeting:  { fontSize: 20, fontWeight: '600' },
-  username:  { color: PRIMARY },
-  subtitle:  {
-    textAlign: 'center', color: '#555',
-    marginTop: 8, paddingHorizontal: 20, fontSize: 14
+  logo: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFF',
   },
-
-  form:    { marginTop: 32, paddingHorizontal: 20 },
-  label:   { fontSize: 16, fontWeight: '500', marginBottom: 8 },
-  inputRow:{ flexDirection: 'row', alignItems: 'center' },
-  input:   {
-    flex: 1, borderWidth: 1.5, borderColor: BORDER,
-    borderRadius: 100, paddingVertical: 10,
-    paddingHorizontal: 16, fontSize: 14, marginRight: 12
+  customerServiceBtn: {
+    padding: 8,
+    marginRight: 12,
   },
-  changeBtn:{ backgroundColor: PRIMARY, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 100 },
-  changeTxt:{ color: '#000', fontWeight: '600', fontSize: 14 },
+  logoutBtn: {
+    backgroundColor: '#FFF',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+  logoutTxt: {
+    color: PRIMARY,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  content: {
+    padding: 20,
+  },
+  avatarSection: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  avatarWrapper: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#FAFAFA',
+    borderWidth: 1,
+    borderColor: BORDER,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  avatar: {
+    width: 60,
+    height: 60,
+    tintColor: PRIMARY,
+  },
+  greeting: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  username: {
+    color: PRIMARY,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#555',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  formSection: {
+    marginTop: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 24,
+  },
+  inputContainer: {
+    marginBottom: 24,
+    position: 'relative',
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#555',
+    marginBottom: 8,
+  },
+  input: {
+    height: 50,
+    backgroundColor: '#FAFAFA',
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 14,
+    color: '#000',
+    paddingRight: 120,
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 16,
+    top: 40,
+  },
+  eyeIconText: {
+    color: PRIMARY,
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  changeButton: {
+    position: 'absolute',
+    right: 16,
+    top: 40,
+    backgroundColor: PRIMARY,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  cancelButton: {
+    right: 90,
+    backgroundColor: '#FF3B30',
+  },
+  changeButtonText: {
+    color: '#000',
+    fontWeight: '600',
+    fontSize: 12,
+  },
 });
