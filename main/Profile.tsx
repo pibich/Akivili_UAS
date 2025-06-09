@@ -1,3 +1,4 @@
+//Profile.tsx
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -331,7 +332,10 @@ export default function Profile({ navigation }) {
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={[styles.header, { paddingTop: insets.top }]}>
+        <View style={[styles.header, { 
+          paddingTop: insets.top,
+          height: 60 + insets.top,
+        }]}>
           <Text style={styles.logo}>Akivili.</Text>
           <View style={styles.headerRight}>
             <TouchableOpacity 
@@ -463,7 +467,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   header: {
-    height: 60,
+    height: 80,
     backgroundColor: PRIMARY,
     flexDirection: 'row',
     alignItems: 'center',

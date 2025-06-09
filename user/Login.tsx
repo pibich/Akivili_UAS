@@ -76,105 +76,117 @@ export default function Login({ navigation, route }) {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContainer,
-          { paddingBottom: insets.bottom + 20 }
-        ]}
-        keyboardShouldPersistTaps="handled"
+    <View style={styles.container}>
+      {/* <StatusBar barStyle="light-content" backgroundColor={PRIMARY} /> */}
+      
+      {/* Fixed Header */}
+      <View style={[styles.header, { 
+        paddingTop: insets.top,
+        height: 60 + insets.top,
+      }]}>
+        <Text style={styles.logo}>Akivili.</Text>
+        <TouchableOpacity 
+          onPress={() => navigation.navigate('CustomerService')}
+          style={styles.customerServiceBtn}
+        >
+          <Headphones size={24} color="#FFF" />
+        </TouchableOpacity>
+      </View>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={60 + insets.top} // Adjust for header height
       >
-        {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top }]}>
-          <Text style={styles.logo}>Akivili.</Text>
-          <TouchableOpacity 
-            onPress={() => navigation.navigate('CustomerService')}
-            style={styles.customerServiceBtn}
-          >
-            <Headphones size={24} color="#FFF" />
-          </TouchableOpacity>
-        </View>
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContainer,
+            { 
+              paddingTop: 80 + insets.top, // Space for fixed header
+              paddingBottom: 20 + insets.bottom 
+            }
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Login Form */}
+          <View style={styles.formContainer}>
+            <Text style={styles.title}>Login Member</Text>
+            <Text style={styles.subtitle}>
+              Masuk menggunakan email yang sudah terdaftar
+            </Text>
 
-        {/* Login Form */}
-        <View style={styles.formContainer}>
-          <Text style={styles.title}>Login Member</Text>
-          <Text style={styles.subtitle}>
-            Masuk menggunakan email yang sudah terdaftar
-          </Text>
+            {error ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
 
-          {error ? (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor="#999"
+                autoCapitalize="none"
+                value={credential}
+                onChangeText={(text) => {
+                  setCredential(text);
+                  setError('');
+                }}
+              />
             </View>
-          ) : null}
 
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#999"
-              autoCapitalize="none"
-              value={credential}
-              onChangeText={(text) => {
-                setCredential(text);
-                setError('');
-              }}
-            />
-          </View>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                placeholderTextColor="#999"
+                secureTextEntry={secureEntry}
+                value={password}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  setError('');
+                }}
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setSecureEntry(!secureEntry)}
+              >
+                <Text style={styles.eyeIconText}>
+                  {secureEntry ? 'Tampilkan' : 'Sembunyikan'}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#999"
-              secureTextEntry={secureEntry}
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                setError('');
-              }}
-            />
             <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() => setSecureEntry(!secureEntry)}
+              style={styles.forgotButton}
+              onPress={() => navigation.navigate('ForgotPass')}
             >
-              <Text style={styles.eyeIconText}>
-                {secureEntry ? 'Tampilkan' : 'Sembunyikan'}
-              </Text>
+              <Text style={styles.forgotText}>Lupa Password?</Text>
             </TouchableOpacity>
-          </View>
 
-          <TouchableOpacity
-            style={styles.forgotButton}
-            onPress={() => navigation.navigate('ForgotPass')}
-          >
-            <Text style={styles.forgotText}>Lupa Password?</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={onLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFF" />
-            ) : (
-              <Text style={styles.buttonText}>LOGIN</Text>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Belum punya akun? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.footerLink}>Daftar di sini</Text>
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={onLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.buttonText}>LOGIN</Text>
+              )}
             </TouchableOpacity>
+
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Belum punya akun? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                <Text style={styles.footerLink}>Daftar di sini</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -187,12 +199,21 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   header: {
-    height: 60,
     backgroundColor: PRIMARY,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   logo: {
     fontSize: 24,
@@ -204,7 +225,6 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     padding: 20,
-    marginTop: 20,
   },
   title: {
     fontSize: 24,

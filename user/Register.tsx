@@ -1,4 +1,3 @@
-//Register.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -76,99 +75,111 @@ export default function Register({ navigation }) {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContainer,
-          { paddingBottom: insets.bottom + 20 }
-        ]}
-        keyboardShouldPersistTaps="handled"
+    <View style={styles.container}>
+      {/* <StatusBar barStyle="light-content" backgroundColor={PRIMARY} /> */}
+      
+      {/* Fixed Header */}
+      <View style={[styles.header, { 
+        paddingTop: insets.top,
+        height: 60 + insets.top,
+      }]}>
+        <Text style={styles.logo}>Akivili.</Text>
+        <TouchableOpacity 
+          onPress={() => navigation.navigate('CustomerService')}
+          style={styles.customerServiceBtn}
+        >
+          <Headphones size={24} color="#FFF" />
+        </TouchableOpacity>
+      </View>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={60 + insets.top} // Adjust for header height
       >
-        {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top }]}>
-          <Text style={styles.logo}>Akivili.</Text>
-          <TouchableOpacity 
-            onPress={() => navigation.navigate('CustomerService')}
-            style={styles.customerServiceBtn}
-          >
-            <Headphones size={24} color="#FFF" />
-          </TouchableOpacity>
-        </View>
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContainer,
+            { 
+              paddingTop: 80 + insets.top, // Space for fixed header
+              paddingBottom: 20 + insets.bottom 
+            }
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Register Form */}
+          <View style={styles.formContainer}>
+            <Text style={styles.title}>Register Member</Text>
+            <Text style={styles.subtitle}>
+              Buat akun baru dengan email dan password
+            </Text>
 
-        {/* Register Form */}
-        <View style={styles.formContainer}>
-          <Text style={styles.title}>Register Member</Text>
-          <Text style={styles.subtitle}>
-            Buat akun baru dengan email dan password
-          </Text>
+            {error ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
 
-          {error ? (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor="#999"
+                autoCapitalize="none"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  setError('');
+                }}
+              />
             </View>
-          ) : null}
 
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#999"
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                setError('');
-              }}
-            />
-          </View>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Password (min. 6 karakter)"
+                placeholderTextColor="#999"
+                secureTextEntry={secureEntry}
+                value={password}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  setError('');
+                }}
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setSecureEntry(!secureEntry)}
+              >
+                <Text style={styles.eyeIconText}>
+                  {secureEntry ? 'Tampilkan' : 'Sembunyikan'}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Password (min. 6 karakter)"
-              placeholderTextColor="#999"
-              secureTextEntry={secureEntry}
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                setError('');
-              }}
-            />
             <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() => setSecureEntry(!secureEntry)}
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={onRegister}
+              disabled={loading}
             >
-              <Text style={styles.eyeIconText}>
-                {secureEntry ? 'Tampilkan' : 'Sembunyikan'}
-              </Text>
+              {loading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.buttonText}>DAFTAR</Text>
+              )}
             </TouchableOpacity>
-          </View>
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={onRegister}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFF" />
-            ) : (
-              <Text style={styles.buttonText}>DAFTAR</Text>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Sudah punya akun? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.footerLink}>Login di sini</Text>
-            </TouchableOpacity>
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Sudah punya akun? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.footerLink}>Login di sini</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -181,12 +192,21 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   header: {
-    height: 60,
     backgroundColor: PRIMARY,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   logo: {
     fontSize: 24,
@@ -198,7 +218,6 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     padding: 20,
-    marginTop: 20,
   },
   title: {
     fontSize: 24,

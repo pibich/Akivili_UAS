@@ -21,10 +21,13 @@ export default function CustomerService({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor={PRIMARY} barStyle="light-content" />
+      {/* <StatusBar backgroundColor={PRIMARY} barStyle="light-content" /> */}
       
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      {/* Fixed Header */}
+      <View style={[styles.header, { 
+        paddingTop: insets.top,
+        height: 60 + insets.top,
+      }]}>
         <Text style={styles.logo}>Akivili.</Text>
         <TouchableOpacity 
           onPress={() => navigation.goBack()}
@@ -37,7 +40,10 @@ export default function CustomerService({ navigation }) {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContainer,
-          { paddingBottom: insets.bottom + 20 }
+          { 
+            paddingTop: 60 + insets.top, // Space for fixed header
+            paddingBottom: insets.bottom + 20 
+          }
         ]}
       >
         {/* Content */}
@@ -52,11 +58,17 @@ export default function CustomerService({ navigation }) {
           </Text>
 
           <View style={styles.buttonsContainer}>
-            <TouchableOpacity style={styles.button}>
-              <Text style={styles.buttonText} onPress={() => Linking.openURL('https://api.whatsapp.com/send/?phone=6281211772544&text=Halo%2C+saya+ingin+bertanya&type=phone_number&app_absent=0')}>WhatsApp CS 1</Text>
+            <TouchableOpacity 
+              style={styles.button}
+              onPress={() => Linking.openURL('https://api.whatsapp.com/send/?phone=6281211772544&text=Halo%2C+saya+ingin+bertanya&type=phone_number&app_absent=0')}
+            >
+              <Text style={styles.buttonText}>WhatsApp CS 1</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.button}>
-              <Text style={styles.buttonText} onPress={() => Linking.openURL('https://api.whatsapp.com/send/?phone=6285920637925&text=Halo%2C+saya+ingin+bertanya&type=phone_number&app_absent=0')}>WhatsApp CS 2</Text>
+            <TouchableOpacity 
+              style={styles.button}
+              onPress={() => Linking.openURL('https://api.whatsapp.com/send/?phone=6285920637925&text=Halo%2C+saya+ingin+bertanya&type=phone_number&app_absent=0')}
+            >
+              <Text style={styles.buttonText}>WhatsApp CS 2</Text>
             </TouchableOpacity>
           </View>
 
@@ -88,12 +100,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
   },
   header: {
-    height: 60,
     backgroundColor: PRIMARY,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   logo: {
     fontSize: 24,
@@ -113,7 +134,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
-    paddingTop: 32,
   },
   iconContainer: {
     alignItems: 'center',

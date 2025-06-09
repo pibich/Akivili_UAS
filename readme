@@ -21,3 +21,5 @@ INSTALL THIS BOYS:
 'npx expo install expo-image-picker expo-file-system'
 
 'npm install base64-arraybuffer'
+
+'npm install date-fns'
