@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   header: {
-    height: 60,
+    height: 80,
     backgroundColor: PRIMARY,
     flexDirection: 'row',
     alignItems: 'center',

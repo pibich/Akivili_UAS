@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  Image, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
   ActivityIndicator,
-  Modal,
   ScrollView,
-  Button, 
-  Alert
+  Alert,
+  TextInput,
+  Modal
 } from 'react-native';
 import { supabase } from '../user/Supabase';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { ArrowLeft } from 'lucide-react-native';
 
 interface TopupPackage {
   id: string;
@@ -29,17 +29,22 @@ interface GameDetailRouteParams {
   gameId: string;
 }
 
+const PRIMARY = '#FFA800';
+
 export default function GameDetail() {
   const navigation = useNavigation();
   const route = useRoute();
   const { gameId } = route.params as GameDetailRouteParams;
-  
+
   const [packages, setPackages] = useState<TopupPackage[]>([]);
-  const [game, setGame] = useState<{title: string, picture_url?: string, description?: string}>({title: ''});
+  const [game, setGame] = useState<{ title: string; picture_url?: string; description?: string }>({ title: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedPackage, setSelectedPackage] = useState<TopupPackage | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [gameUserId, setGameUserId] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
+  const [latestOrderId, setLatestOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchGameAndPackages();
@@ -48,7 +53,7 @@ export default function GameDetail() {
   const fetchGameAndPackages = async () => {
     try {
       setLoading(true);
-      
+
       const { data: gameData, error: gameError } = await supabase
         .from('games')
         .select('title, picture_url, description')
@@ -56,7 +61,7 @@ export default function GameDetail() {
         .single();
 
       if (gameError) throw gameError;
-      setGame(gameData || {title: ''});
+      setGame(gameData || { title: '' });
 
       const { data: packagesData, error: packagesError } = await supabase
         .from('topup_packages')
@@ -67,7 +72,6 @@ export default function GameDetail() {
 
       if (packagesError) throw packagesError;
       setPackages(packagesData || []);
-      
     } catch (err) {
       setError(err.message);
       console.error('Error fetching data:', err);
@@ -76,99 +80,61 @@ export default function GameDetail() {
     }
   };
 
-  const handleAddToCart = async () => {
-  if (!selectedPackage) return;
-  
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id;
-
-    let { data: cartData, error: cartError } = await supabase
-      .from('carts')
-      .select('id')
-      .eq('user_id', userId)
-      .single();
-
-    if (cartError && cartError.code !== 'PGRST116') throw cartError;
-    
-    if (!cartData) {
-      const { data: newCartData, error: newCartError } = await supabase
-        .from('carts')
-        .insert([{ user_id: userId }])
-        .select()
-        .single();
-    
-      if (newCartError) throw newCartError;
-      cartData = newCartData;
+  const handleBuyNow = async () => {
+    if (!selectedPackage || !gameUserId.trim()) {
+      Alert.alert('Error', 'Please select a package and enter a UID.');
+      return;
     }
 
-    const { data: existingItem, error: existingItemError } = await supabase
-      .from('cart_items')
-      .select('id, quantity')
-      .eq('cart_id', cartData.id)
-      .eq('topup_package_id', selectedPackage.id)
-      .maybeSingle();
+    try {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+      if (authError || !user) throw authError;
 
-    if (existingItemError) throw existingItemError;
+      const userId = user.id;
 
-    if (existingItem) {
-      const { error: updateError } = await supabase
-        .from('cart_items')
-        .update({ quantity: existingItem.quantity + quantity })
-        .eq('id', existingItem.id);
-
-      if (updateError) throw updateError;
-    } else {
-      const { error: insertError } = await supabase
-        .from('cart_items')
-        .insert([{
-          cart_id: cartData.id,
+      // Insert order
+      const { data: orderData, error: orderError } = await supabase.from('orders').insert([
+        {
+          user_id: userId,
+          game_id: gameId,
+          game_user_id: gameUserId.trim(),
           topup_package_id: selectedPackage.id,
-          quantity: quantity
-        }]);
+          total_amount: selectedPackage.price,
+          currency: selectedPackage.currency,
+          status: 'PENDING',
+        },
+      ]).select().single();
 
-      if (insertError) throw insertError;
+      if (orderError) throw orderError;
+
+      setLatestOrderId(orderData.id);
+      setModalVisible(true);
+      setSelectedPackage(null);
+      setGameUserId('');
+
+      // Simulate payment process
+      setTimeout(async () => {
+        if (orderData.id) {
+          const { error: updateError } = await supabase
+            .from('orders')
+            .update({ status: 'PAID' })
+            .eq('id', orderData.id);
+          if (updateError) throw updateError;
+
+          setModalVisible(false);
+          Alert.alert('Success', 'Payment successful!');
+          navigation.goBack();
+        }
+      }, 5000); // 5 seconds delay
+
+    } catch (err: any) {
+      console.error('Error placing order:', err);
+      Alert.alert('Error', err.message || 'Failed to place order');
     }
-
-    setSelectedPackage(null);
-    setQuantity(1);
-    Alert.alert('Success', 'Item added to cart!');
-    
-  } catch (err: any) {
-    console.error('Error adding to cart:', err);
-    Alert.alert('Error', err.message || 'Failed to add item to cart');
-  }
-};
-
-  const renderPackageItem = ({ item }: { item: TopupPackage }) => (
-    <TouchableOpacity 
-      style={styles.packageCard}
-      onPress={() => setSelectedPackage(item)}
-    >
-      <View style={styles.packageImageContainer}>
-        {item.picture_url ? (
-          <Image 
-            source={{ uri: item.picture_url }} 
-            style={styles.packageImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.packageImagePlaceholder}>
-            <Text style={styles.packageImagePlaceholderText}>No Image</Text>
-          </View>
-        )}
-      </View>
-      <View style={styles.packageInfo}>
-        <Text style={styles.packageName}>{item.package_name}</Text>
-        <Text style={styles.packageDescription} numberOfLines={2}>
-          {item.description || 'No description available'}
-        </Text>
-        <Text style={styles.packagePrice}>
-          {item.currency} {item.price.toFixed(2)}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+  };
 
   if (loading) {
     return (
@@ -191,113 +157,111 @@ export default function GameDetail() {
 
   return (
     <View style={styles.container}>
-      {game.picture_url && (
-        <Image 
-          source={{ uri: game.picture_url }} 
-          style={styles.gameBanner}
-          resizeMode="cover"
-        />
-      )}
-      
-      <View style={styles.gameInfo}>
-        <Text style={styles.header}>{game.title}</Text>
-        {game.description && (
-          <Text style={styles.gameDescription}>{game.description}</Text>
-        )}
+      <View style={styles.top}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 8, marginTop: 40, marginLeft: -20 }}>
+          <ArrowLeft size={28} color="#FFF" />
+        </TouchableOpacity>
       </View>
-      
-      <Text style={styles.packagesHeader}>Available Packages</Text>
-      
-      <FlatList
-        data={packages}
-        renderItem={renderPackageItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
-        ListEmptyComponent={
+
+      <ScrollView style={styles.container}>
+        {game.picture_url && (
+          <Image source={{ uri: game.picture_url }} style={styles.gameBanner} resizeMode="cover" />
+        )}
+
+        <View style={styles.gameInfo}>
+          <Text style={styles.header}>{game.title}</Text>
+          {game.description && <Text style={styles.gameDescription}>{game.description}</Text>}
+        </View>
+
+        <Text style={styles.packagesHeader}>Masukan UID </Text>
+        <View style={{ padding: 16, marginTop: -10, marginBottom: -20 }}>
+          <TextInput
+            style={styles.input}
+            placeholder="Masukan UID"
+            keyboardType="numeric"
+            value={gameUserId}
+            onChangeText={setGameUserId}
+          />
+        </View>
+
+        <Text style={styles.packagesHeader}>Available Packages</Text>
+
+        {packages.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No packages available for this game</Text>
           </View>
-        }
-      />
-
-      {/* Package Detail Modal */}
-      <Modal
-        visible={!!selectedPackage}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={() => setSelectedPackage(null)}
-      >
-        {selectedPackage && (
-          <ScrollView style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{selectedPackage.package_name}</Text>
-              <TouchableOpacity 
-                style={styles.closeButton}
-                onPress={() => setSelectedPackage(null)}
-              >
-                <Text style={styles.closeButtonText}>×</Text>
-              </TouchableOpacity>
-            </View>
-            
-            {selectedPackage.picture_url ? (
-              <Image 
-                source={{ uri: selectedPackage.picture_url }} 
-                style={styles.modalImage}
-                resizeMode="contain"
-              />
-            ) : (
-              <View style={styles.modalImagePlaceholder}>
-                <Text style={styles.modalImagePlaceholderText}>No Image Available</Text>
-              </View>
-            )}
-            
-            <View style={styles.modalSection}>
-              <Text style={styles.sectionTitle}>Description</Text>
-              <Text style={styles.modalText}>
-                {selectedPackage.description || 'No description available'}
-              </Text>
-            </View>
-            
-            <View style={styles.modalSection}>
-              <Text style={styles.sectionTitle}>Price</Text>
-              <Text style={styles.priceText}>
-                {selectedPackage.currency} {selectedPackage.price.toFixed(2)}
-              </Text>
-            </View>
-            
-            <View style={styles.modalSection}>
-              <Text style={styles.sectionTitle}>Quantity</Text>
-              <View style={styles.quantityContainer}>
-                <TouchableOpacity 
-                  style={styles.quantityButton}
-                  onPress={() => setQuantity(Math.max(1, quantity - 1))}
-                >
-                  <Text style={styles.quantityButtonText}>-</Text>
-                </TouchableOpacity>
-                <Text style={styles.quantityText}>{quantity}</Text>
-                <TouchableOpacity 
-                  style={styles.quantityButton}
-                  onPress={() => setQuantity(quantity + 1)}
-                >
-                  <Text style={styles.quantityButtonText}>+</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            
-            <TouchableOpacity 
-              style={styles.addToCartButton}
-              onPress={handleAddToCart}
+        ) : (
+          packages.map(pkg => (
+            <TouchableOpacity
+              key={pkg.id}
+              style={[styles.packageCard, selectedPackage?.id === pkg.id && styles.selectedPackageCard]}
+              onPress={() => setSelectedPackage(pkg)}
             >
-              <Text style={styles.addToCartButtonText}>Add to Cart</Text>
+              <View style={styles.packageImageContainer}>
+                {pkg.picture_url ? (
+                  <Image source={{ uri: pkg.picture_url }} style={styles.packageImage} resizeMode="cover" />
+                ) : (
+                  <View style={styles.packageImagePlaceholder}>
+                    <Text style={styles.packageImagePlaceholderText}>No Image</Text>
+                  </View>
+                )}
+              </View>
+              <View style={styles.packageInfo}>
+                <Text style={styles.packageName}>{pkg.package_name}</Text>
+                <Text style={styles.packageDescription} numberOfLines={2}>
+                  {pkg.description || 'No description available'}
+                </Text>
+                <Text style={styles.packagePrice}>
+                  {pkg.currency} {pkg.price.toFixed(2)}
+                </Text>
+              </View>
             </TouchableOpacity>
-          </ScrollView>
+          ))
         )}
+
+        {selectedPackage && (
+          <View style={{ marginBottom: 10 }}>
+            <TouchableOpacity style={styles.buyNowButton} onPress={handleBuyNow}>
+              <Text style={styles.buyNowText}>Beli Sekarang</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Payment Modal */}
+      <Modal visible={modalVisible} transparent={true} animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Scan QR to Pay</Text>
+            <Image
+              source={require('../assets/qr.jpg')}
+              style={{ width: 300, height: 300 }}
+            />
+            <Text style={{ marginTop: 10 }}>Waiting for payment...</Text>
+          </View>
+        </View>
       </Modal>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+  const styles = StyleSheet.create({
+ 
+  buyNowButton: {
+    backgroundColor: PRIMARY,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    width: '93%',
+    alignSelf: 'center',
+    marginTop: 10,
+  },
+
+  buyNowText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
@@ -344,7 +308,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     padding: 16,
     color: '#333',
-    backgroundColor: 'white',
     marginTop: 10,
   },
   listContainer: {
@@ -377,6 +340,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#e0e0e0',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  selectedPackageCard: {
+  borderColor: PRIMARY,
+  borderWidth: 2,
   },
   packageImagePlaceholderText: {
     color: '#999',
@@ -412,66 +379,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#999',
   },
-  // Modal styles
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'white',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    flex: 1,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 28,
-    color: '#666',
-  },
-  modalImage: {
-    width: '100%',
-    height: 250,
-    marginVertical: 16,
-  },
-  modalImagePlaceholder: {
-    width: '100%',
-    height: 200,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: 16,
-  },
-  modalImagePlaceholderText: {
-    color: '#999',
-    fontSize: 16,
-  },
-  modalSection: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 8,
     color: '#333',
-  },
-  modalText: {
-    fontSize: 16,
-    color: '#666',
-    lineHeight: 24,
   },
   priceText: {
     fontSize: 20,
@@ -514,4 +426,44 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
+  top: {
+    marginTop: -10,
+    height: 80,
+    flexDirection: 'row',
+    backgroundColor: PRIMARY,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+  },
+
+input: {
+  flex: 1,
+  borderWidth: 1,
+  borderColor: '#ccc',
+  borderRadius: 8,
+  paddingHorizontal: 12,
+  paddingVertical: 8,
+  backgroundColor: '#fff',
+  width: '100%',
+  alignSelf: 'center',
+  height: 40,
+},
+modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+    width: '90%',
+  },
+  qrImage: {
+    width: 150,
+    height: 150,
+    marginVertical: 10
+  }
 });
