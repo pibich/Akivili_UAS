@@ -9,6 +9,7 @@ dist/
 web-build/
 expo-env.d.ts
 
+
 # Native
 .kotlin/
 *.orig.*
@@ -20,7 +21,7 @@ expo-env.d.ts
 
 # Metro
 .metro-health-check*
-
+metro.config.js
 # debug
 npm-debug.*
 yarn-debug.*
