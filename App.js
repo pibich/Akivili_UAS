@@ -10,6 +10,7 @@ import Splash from './user/Splash';
 import Login from './user/Login';
 import Register from './user/Register';
 import CustomerService from './user/CustomerService';
+import ForgotPass from './user/ForgotPass';
 import HomeScreen from './main/Home';
 import GameDetail from './main/GameDetail';
 import HistoryScreen from './main/History';
@@ -35,6 +36,7 @@ function AuthFlow() {
       <AuthStack.Screen name="Splash" component={Splash} />
       <AuthStack.Screen name="Login" component={Login} />
       <AuthStack.Screen name="Register" component={Register} />
+      <AuthStack.Screen name="ForgotPass" component={ForgotPass} />
     </AuthStack.Navigator>
   );
 }
