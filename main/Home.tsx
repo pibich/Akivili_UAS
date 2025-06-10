@@ -2,6 +2,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { supabase } from '../user/Supabase';
+import { Headphones } from 'lucide-react-native';
+
+
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const PRIMARY = '#FFA800';
+const BORDER = '#FFCD5C';
 
 interface Game {
   id: string;
