@@ -20,17 +20,10 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
-      "package": "com.pibich.Akivili_UAS"
+      "edgeToEdgeEnabled": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "00929fe7-1bfd-4731-8876-b6c8bc2e4e87"
-      }
-    },
-    "owner": "pibich"
+    }
   }
 }

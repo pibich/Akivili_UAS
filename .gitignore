@@ -35,12 +35,3 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
-
-# Keystore dan file credentials
-android/my-upload-key.keystore
-android/app/my-upload-key.keystore
-credentials.json
-eas.json
-*.keystore
-*.jks
-*.properties
